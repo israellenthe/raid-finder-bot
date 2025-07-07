@@ -1,5 +1,5 @@
 # Raid Finder Bot - Discord Bot
-# Copyright (C) 2025 [Your Name or Server Name]
+# Copyright (C) 2025
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License (AGPL) as
@@ -13,7 +13,7 @@
 # it in a monetized environment.
 #
 # You should have received a copy of the GNU AGPL along with this program.
-# If not, see https://www.gnu.org/licenses/
+# If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import discord
@@ -35,58 +35,57 @@ searching_for_raids = False
 
 # Server and channel names
 TARGET_SERVER_NAME = "Gran Blu Raid Scanner"
-TARGET_THREAD_RAID = "raid-codes"
-TARGET_THREAD_COOP = "co-op-codes"
-raid_thread = None
-coop_thread = None
+TARGET_CHANNEL_RAID = "raid-codes"
+TARGET_CHANNEL_COOP = "co-op-codes"
+raid_channel = None
+coop_channel = None
 
-# Keep track of recently posted codes (to avoid duplicates)
-seen_codes = deque(maxlen=100)  # Stores the last 100 codes
+# Track recent codes
+seen_codes = deque(maxlen=100)
 
 @bot.event
 async def on_ready():
-    global raid_thread, coop_thread
+    global raid_channel, coop_channel
 
     print(f"Bot is online! Logged in as {bot.user}")
-    print("Hello! I'm your Raid Finder Bot.")
-    print("Use these commands to control me:")
-    print("- !go     Start raid notifications")
-    print("- !stop   Stop raid notifications")
-    print("- !status Check if I'm searching or not")
+    print("Commands:")
+    print("!go     - Start raid scanning")
+    print("!stop   - Stop raid scanning")
+    print("!status - Show scan status")
 
-    # Search for threads in your server
+    # Find the right server and channels
     for guild in bot.guilds:
         if guild.name == TARGET_SERVER_NAME:
-            for thread in guild.threads:
-                name = thread.name.lower()
-                if TARGET_THREAD_RAID in name:
-                    raid_thread = thread
-                    print(f"Found RAID thread: {thread.name}")
-                elif TARGET_THREAD_COOP in name:
-                    coop_thread = thread
-                    print(f"Found CO-OP thread: {thread.name}")
+            for channel in guild.text_channels:
+                name = channel.name.lower()
+                if name == TARGET_CHANNEL_RAID:
+                    raid_channel = channel
+                    print(f"Found RAID channel: {channel.name}")
+                elif name == TARGET_CHANNEL_COOP:
+                    coop_channel = channel
+                    print(f"Found CO-OP channel: {channel.name}")
 
-    if not raid_thread:
-        print("Could not find 'raid-codes' thread.")
-    if not coop_thread:
-        print("Could not find 'co-op-codes' thread.")
+    if not raid_channel:
+        print("Warning: Could not find 'raid-codes' channel.")
+    if not coop_channel:
+        print("Warning: Could not find 'co-op-codes' channel.")
 
 @bot.command()
 async def go(ctx):
     global searching_for_raids
     searching_for_raids = True
-    await ctx.send('Got it! I will start searching for raids now.\nIf you want me to stop, just say so.')
+    await ctx.send("Scanning for raid codes has started.")
 
 @bot.command()
 async def stop(ctx):
     global searching_for_raids
     searching_for_raids = False
-    await ctx.send('Alright, I have stopped looking for raids.\nIf you want me to go again, just say so.')
+    await ctx.send("Scanning for raid codes has stopped.")
 
 @bot.command()
 async def status(ctx):
     state = "ON" if searching_for_raids else "OFF"
-    await ctx.send(f'Raid searching is currently: {state}')
+    await ctx.send(f"Raid scanning is currently: {state}")
 
 @bot.event
 async def on_message(message):
@@ -99,18 +98,18 @@ async def on_message(message):
             code = match.group(0)
 
             if code in seen_codes:
-                return  # Skip if this code was already posted
+                return  # Duplicate
 
-            seen_codes.append(code)  # Track it as seen
-            formatted = f"Code found: `{code}` from {message.guild.name}#{message.channel.name}"
+            seen_codes.append(code)
+            output = f"Code found: `{code}` from {message.guild.name}#{message.channel.name}"
 
-            if "co-op" in message.channel.name.lower() and coop_thread:
-                await coop_thread.send(formatted)
-            elif raid_thread:
-                await raid_thread.send(formatted)
+            if "co-op" in message.channel.name.lower() and coop_channel:
+                await coop_channel.send(output)
+            elif raid_channel:
+                await raid_channel.send(output)
 
     await bot.process_commands(message)
 
-# Final line — run with your bot token
+# Final run command with environment variable
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
-x
+
