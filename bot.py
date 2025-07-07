@@ -1,22 +1,30 @@
+
 # Raid Finder Bot - Discord Bot
-# Copyright (C) 2025
+# Copyright (C) 2025 [Your Name or Server Name]
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License (AGPL) as
-# published by the Free Software Foundation, either version 3 of the License,
-# with the additional restriction:
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, with the following additional restriction:
 #
-# This software may NOT be used for commercial purposes.
+#     → This software may NOT be used for commercial purposes.
 #
 # This means you cannot sell, license, or profit from this code or any
-# modified versions of it, including hosting it behind a paywall or using
-# it in a monetized environment.
+# modified versions of it, including hosting it behind a paywall or using it
+# in a monetized environment. It is intended for public, non-commercial community use only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU AGPL along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
+#
+# A copy of the full AGPL v3 license is available here:
+# https://www.gnu.org/licenses/agpl-3.0.txt
 
-import datetime
 import os
+import datetime
 import discord
 from discord.ext import commands
 import re
@@ -28,20 +36,20 @@ intents.message_content = True
 intents.guilds = True
 intents.guild_messages = True
 
-# Create the bot
+# Create bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Track raid searching state
+# Global state
 searching_for_raids = False
-
-# Server and channel names
 TARGET_THREAD_RAID = "raid-codes"
 TARGET_THREAD_COOP = "co-op-codes"
 raid_thread = None
 coop_thread = None
-
-# Track recent codes
 seen_codes = deque(maxlen=100)
+
+# Multilingual detection keywords
+RAID_KEYWORDS = ["raid", "レイド", "레이드", "incursion"]
+COOP_KEYWORDS = ["co-op", "協力", "협동", "cooperativo"]
 
 @bot.event
 async def on_ready():
@@ -53,16 +61,15 @@ async def on_ready():
     print("!stop   - Stop raid scanning")
     print("!status - Show scan status")
 
-    # Scan all servers the bot is in
     for guild in bot.guilds:
         for thread in guild.threads:
             name = thread.name.lower()
             if TARGET_THREAD_RAID in name:
                 raid_thread = thread
-                print("Found RAID thread in", guild.name + ": " + thread.name)
+                print("Found RAID thread in", guild.name)
             elif TARGET_THREAD_COOP in name:
                 coop_thread = thread
-                print("Found CO-OP thread in", guild.name + ": " + thread.name)
+                print("Found CO-OP thread in", guild.name)
 
     if not raid_thread:
         print("Warning: Could not find 'raid-codes' thread.")
@@ -79,7 +86,7 @@ async def go(ctx):
 async def stop(ctx):
     global searching_for_raids
     searching_for_raids = False
-    await ctx.send("Scanning for raid codes has stopped.")
+    await ctx.send("Raid scanning has been stopped.")
 
 @bot.command()
 async def status(ctx):
@@ -97,19 +104,24 @@ async def on_message(message):
             code = match.group(0)
 
             if code in seen_codes:
-                return  # Duplicate
+                return
 
             seen_codes.append(code)
-            timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-            output = f"Code found: `{code}` from **{message.guild.name}#{message.channel.name}** at {timestamp}"
+            timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+            output = f"Code found: {code} from {message.guild.name}#{message.channel.name} at {timestamp}"
 
-            if "co-op" in message.channel.name.lower() and coop_thread:
-                await coop_thread.send(output)
-            elif raid_channel:
-                await raid_thread.send(output)
+            channel_name = message.channel.name.lower()
+            message_lower = message.content.lower()
+
+            if any(keyword in channel_name for keyword in COOP_KEYWORDS) or any(keyword in message_lower for keyword in COOP_KEYWORDS):
+                if coop_thread:
+                    await coop_thread.send(output)
+            elif any(keyword in channel_name for keyword in RAID_KEYWORDS) or any(keyword in message_lower for keyword in RAID_KEYWORDS):
+                if raid_thread:
+                    await raid_thread.send(output)
 
     await bot.process_commands(message)
 
-# Final run command with environment variable
+# Run the bot
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
 
