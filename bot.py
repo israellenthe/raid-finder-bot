@@ -45,7 +45,7 @@ seen_codes = deque(maxlen=100)
 
 @bot.event
 async def on_ready():
-    global raid_channel, coop_channel
+    global raid_thread, coop_thread
 
     print(f"Bot is online! Logged in as {bot.user}")
     print("Commands:")
@@ -56,18 +56,18 @@ async def on_ready():
     # Scan all servers the bot is in
     for guild in bot.guilds:
         for thread in guild.threads:
-        name = thread.name.lower()
+            name = thread.name.lower()
             if TARGET_THREAD_RAID in name:
-            raid_thread = thread
-            print("Found RAID thread in", guild.name + ":", thread.name)
+                raid_thread = thread
+                print("Found RAID thread in", guild.name + ": " + thread.name)
             elif TARGET_THREAD_COOP in name:
-            coop_thread = thread
-            print("Found CO-OP thread in", guild.name + ":", thread.name)
+                coop_thread = thread
+                print("Found CO-OP thread in", guild.name + ": " + thread.name)
 
-    if not raid_channel:
-        print("Warning: Could not find 'raid-codes' channel.")
-    if not coop_channel:
-        print("Warning: Could not find 'co-op-codes' channel.")
+    if not raid_thread:
+        print("Warning: Could not find 'raid-codes' thread.")
+    if not coop_thread:
+        print("Warning: Could not find 'co-op-codes' thread.")
 
 @bot.command()
 async def go(ctx):
