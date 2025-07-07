@@ -37,7 +37,7 @@ searching_for_raids = False
 # Server and channel names
 TARGET_THREAD_RAID = "raid-codes"
 TARGET_THREAD_COOP = "co-op-codes"
-raid_thrread = None
+raid_thread = None
 coop_thread = None
 
 # Track recent codes
