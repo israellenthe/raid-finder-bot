@@ -35,10 +35,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 searching_for_raids = False
 
 # Server and channel names
-TARGET_CHANNEL_RAID = "raid-codes"
-TARGET_CHANNEL_COOP = "co-op-codes"
-raid_channel = None
-coop_channel = None
+TARGET_THREAD_RAID = "raid-codes"
+TARGET_THREAD_COOP = "co-op-codes"
+raid_thrread = None
+coop_thread = None
 
 # Track recent codes
 seen_codes = deque(maxlen=100)
@@ -103,10 +103,10 @@ async def on_message(message):
             timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
             output = f"Code found: `{code}` from **{message.guild.name}#{message.channel.name}** at {timestamp}"
 
-            if "co-op" in message.channel.name.lower() and coop_channel:
-                await coop_channel.send(output)
+            if "co-op" in message.channel.name.lower() and coop_thread:
+                await coop_thread.send(output)
             elif raid_channel:
-                await raid_channel.send(output)
+                await raid_thread.send(output)
 
     await bot.process_commands(message)
 
