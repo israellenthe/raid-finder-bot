@@ -103,7 +103,7 @@ async def on_message(message):
 
             seen_codes.append(code)
             timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-output = f"Code found: `{code}` from **{message.guild.name}#{message.channel.name}** at {timestamp}"
+            output = f"Code found: `{code}` from **{message.guild.name}#{message.channel.name}** at {timestamp}"
 
             if "co-op" in message.channel.name.lower() and coop_channel:
                 await coop_channel.send(output)
