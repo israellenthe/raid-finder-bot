@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU AGPL along with this program.
 # If not, see <https://www.gnu.org/licenses/>.
 
+import datetime
 import os
 import discord
 from discord.ext import commands
@@ -101,7 +102,8 @@ async def on_message(message):
                 return  # Duplicate
 
             seen_codes.append(code)
-            output = f"Code found: `{code}` from {message.guild.name}#{message.channel.name}"
+            timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+output = f"Code found: `{code}` from **{message.guild.name}#{message.channel.name}** at {timestamp}"
 
             if "co-op" in message.channel.name.lower() and coop_channel:
                 await coop_channel.send(output)
