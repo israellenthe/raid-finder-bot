@@ -35,7 +35,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 searching_for_raids = False
 
 # Server and channel names
-TARGET_SERVER_NAME = "Gran Blu Raid Scanner"
 TARGET_CHANNEL_RAID = "raid-codes"
 TARGET_CHANNEL_COOP = "co-op-codes"
 raid_channel = None
@@ -54,17 +53,16 @@ async def on_ready():
     print("!stop   - Stop raid scanning")
     print("!status - Show scan status")
 
-    # Find the right server and channels
+    # Scan all servers the bot is in
     for guild in bot.guilds:
-        if guild.name == TARGET_SERVER_NAME:
-            for channel in guild.text_channels:
-                name = channel.name.lower()
-                if name == TARGET_CHANNEL_RAID:
-                    raid_channel = channel
-                    print(f"Found RAID channel: {channel.name}")
-                elif name == TARGET_CHANNEL_COOP:
-                    coop_channel = channel
-                    print(f"Found CO-OP channel: {channel.name}")
+    for thread in guild.threads:
+        name = thread.name.lower()
+        if TARGET_THREAD_RAID in name:
+            raid_thread = thread
+            print("Found RAID thread in", guild.name + ":", thread.name)
+        elif TARGET_THREAD_COOP in name:
+            coop_thread = thread
+            print("Found CO-OP thread in", guild.name + ":", thread.name)
 
     if not raid_channel:
         print("Warning: Could not find 'raid-codes' channel.")
