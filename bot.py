@@ -55,12 +55,12 @@ async def on_ready():
 
     # Scan all servers the bot is in
     for guild in bot.guilds:
-    for thread in guild.threads:
+        for thread in guild.threads:
         name = thread.name.lower()
-        if TARGET_THREAD_RAID in name:
+            if TARGET_THREAD_RAID in name:
             raid_thread = thread
             print("Found RAID thread in", guild.name + ":", thread.name)
-        elif TARGET_THREAD_COOP in name:
+            elif TARGET_THREAD_COOP in name:
             coop_thread = thread
             print("Found CO-OP thread in", guild.name + ":", thread.name)
 
