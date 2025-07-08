@@ -1,11 +1,11 @@
 # Raid Finder Bot - Discord Bot
-# Copyright (C) 2025 Jake Anderson
+# Copyright (C) 2025 [Your Name or Server Name]
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, with the following additional restriction:
 #
-#     → This software may NOT be used for commercial purposes.
+#     -> This software may NOT be used for commercial purposes.
 #
 # This means you cannot sell, license, or profit from this code or any
 # modified versions of it, including hosting it behind a paywall or using it
@@ -17,7 +17,7 @@
 # See the GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU AGPL along with this program.
-# If not, see <https://www.gnu.org/licenses/>.
+# If not, see https://www.gnu.org/licenses/.
 #
 # A copy of the full AGPL v3 license is available here:
 # https://www.gnu.org/licenses/agpl-3.0.txt
@@ -38,26 +38,22 @@ intents.guild_messages = True
 # Create bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Per-server state
-searching_servers = {}
-
-# Channel name identifiers
-TARGET_CHANNEL_RAID = "raid-codes"
-TARGET_CHANNEL_COOP = "co-op-codes"
+# Global state
+searching_for_raids = False
+TARGET_RAID = "raid-codes"
+TARGET_COOP = "co-op-codes"
+raid_thread = None
+coop_thread = None
+seen_codes = deque(maxlen=100)
 
 # Multilingual detection keywords
 RAID_KEYWORDS = ["raid", "レイド", "레이드", "incursion"]
 COOP_KEYWORDS = ["co-op", "協力", "협동", "cooperativo"]
 
-# Store channels per guild
-raid_channels = {}
-coop_channels = {}
-
-# Recent code memory
-seen_codes = deque(maxlen=100)
-
 @bot.event
 async def on_ready():
+    global raid_thread, coop_thread
+
     print(f"Bot is online! Logged in as {bot.user}")
     print("Commands:")
     print("!go     - Start raid scanning")
@@ -65,33 +61,44 @@ async def on_ready():
     print("!status - Show scan status")
 
     for guild in bot.guilds:
+        # Check for threads first
+        for thread in guild.threads:
+            name = thread.name.lower()
+            if TARGET_RAID in name and raid_thread is None:
+                raid_thread = thread
+                print("Found RAID thread in", guild.name)
+            elif TARGET_COOP in name and coop_thread is None:
+                coop_thread = thread
+                print("Found CO-OP thread in", guild.name)
+
+        # Fallback to regular text channels
         for channel in guild.text_channels:
             name = channel.name.lower()
-            if TARGET_CHANNEL_RAID in name:
-                raid_channels[guild.id] = channel
+            if TARGET_RAID in name and raid_thread is None:
+                raid_thread = channel
                 print("Found RAID channel in", guild.name)
-            elif TARGET_CHANNEL_COOP in name:
-                coop_channels[guild.id] = channel
+            elif TARGET_COOP in name and coop_thread is None:
+                coop_thread = channel
                 print("Found CO-OP channel in", guild.name)
 
-        if guild.id not in raid_channels:
-            print(f"Warning: Could not find 'raid-codes' channel in {guild.name}")
-        if guild.id not in coop_channels:
-            print(f"Warning: Could not find 'co-op-codes' channel in {guild.name}")
+    if not raid_thread and not coop_thread:
+        print("Warning: Could not find either 'raid-codes' or 'co-op-codes'.")
 
 @bot.command()
 async def go(ctx):
-    searching_servers[ctx.guild.id] = True
+    global searching_for_raids
+    searching_for_raids = True
     await ctx.send("Scanning for raid codes has started.")
 
 @bot.command()
 async def stop(ctx):
-    searching_servers[ctx.guild.id] = False
+    global searching_for_raids
+    searching_for_raids = False
     await ctx.send("Raid scanning has been stopped.")
 
 @bot.command()
 async def status(ctx):
-    state = "ON" if searching_servers.get(ctx.guild.id, False) else "OFF"
+    state = "ON" if searching_for_raids else "OFF"
     await ctx.send(f"Raid scanning is currently: {state}")
 
 @bot.event
@@ -99,30 +106,27 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.guild and searching_servers.get(message.guild.id, False):
+    if searching_for_raids and message.guild:
         match = re.search(r"\b[A-Z0-9]{8}\b", message.content)
         if match:
             code = match.group(0)
 
             if code in seen_codes:
-                return  # already handled
+                return
 
             seen_codes.append(code)
             timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
             output = f"Code found: {code} from {message.guild.name}#{message.channel.name} at {timestamp}"
 
-            lower_channel = message.channel.name.lower()
-            lower_msg = message.content.lower()
+            channel_name = message.channel.name.lower()
+            message_lower = message.content.lower()
 
-            if any(keyword in lower_channel for keyword in COOP_KEYWORDS) or any(keyword in lower_msg for keyword in COOP_KEYWORDS):
-                coop_channel = coop_channels.get(message.guild.id)
-                if coop_channel:
-                    await coop_channel.send(output)
-
-            elif any(keyword in lower_channel for keyword in RAID_KEYWORDS) or any(keyword in lower_msg for keyword in RAID_KEYWORDS):
-                raid_channel = raid_channels.get(message.guild.id)
-                if raid_channel:
-                    await raid_channel.send(output)
+            if any(keyword in channel_name for keyword in COOP_KEYWORDS) or any(keyword in message_lower for keyword in COOP_KEYWORDS):
+                if coop_thread:
+                    await coop_thread.send(output)
+            elif any(keyword in channel_name for keyword in RAID_KEYWORDS) or any(keyword in message_lower for keyword in RAID_KEYWORDS):
+                if raid_thread:
+                    await raid_thread.send(output)
 
     await bot.process_commands(message)
 
